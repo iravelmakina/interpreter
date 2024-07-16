@@ -157,7 +157,7 @@ int main() {
             double result = evaluatePostfix(postfix);
             std::cout << "Result: " << result << std::endl;
         } catch (const std::exception &ex) {
-            std::cerr << "Error: " << ex.what() << std::endl;
+            std::cout << "Error: " << ex.what() << std::endl;
         }
     } while (true);
 
