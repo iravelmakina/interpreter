@@ -5,6 +5,7 @@
 #include <queue>
 #include <stack>
 
+
 enum TokenType {OPERAND, OPERATOR, LEFT_BRACKET, RIGHT_BRACKET};
 
 struct Token {
@@ -101,4 +102,40 @@ std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
         operatorStack.pop();
     }
     return outputQueue;
+}
+
+double applyOperation(char operatorChar, double a, double b) {
+    switch(operatorChar) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': if (b == 0) throw std::runtime_error("Division by zero");
+            return a / b;
+        default: throw std::runtime_error("Unknown operator");
+    }
+}
+
+double evaluatePostfix(std::queue<Token>& postfix) {
+    std::stack<double> evalStack;
+
+    while (!postfix.empty()) {
+        Token token = postfix.front();
+        postfix.pop();
+
+        if (token.type == OPERAND) {
+            evalStack.push(token.value);
+        } else if (token.type == OPERATOR) {
+            if (evalStack.size() < 2) {
+                throw std::runtime_error("Incorrect syntax");
+            }
+            double b = evalStack.top(); evalStack.pop();
+            double a = evalStack.top(); evalStack.pop();
+            evalStack.push(applyOperation(token.op, a, b));
+        }
+    }
+    if (evalStack.size() != 1) {
+        throw std::runtime_error("Invalid expression");
+    }
+
+    return evalStack.top();
 }
