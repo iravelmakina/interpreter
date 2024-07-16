@@ -139,3 +139,27 @@ double evaluatePostfix(std::queue<Token>& postfix) {
 
     return evalStack.top();
 }
+
+int main() {
+    std::string expression;
+    do {
+        std::cout << "Enter an arithmetic expression (or 'e' to exit): ";
+        std::getline(std::cin, expression);
+
+        if (expression == "e") {
+            std::cout << "Exiting...";
+            break;
+        }
+
+        try {
+            std::vector<Token> tokens = tokenize(expression);
+            std::queue<Token> postfix = infixToPostfix(tokens);
+            double result = evaluatePostfix(postfix);
+            std::cout << "Result: " << result << std::endl;
+        } catch (const std::exception &ex) {
+            std::cerr << "Error: " << ex.what() << std::endl;
+        }
+    } while (true);
+
+    return 0;
+}
