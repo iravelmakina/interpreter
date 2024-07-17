@@ -4,18 +4,28 @@
 #include <unordered_map>
 #include <queue>
 #include <stack>
+#include <cmath>
 
 
-enum TokenType {OPERAND, OPERATOR, LEFT_BRACKET, RIGHT_BRACKET};
+enum TokenType {OPERAND, OPERATOR, FUNCTION, LEFT_BRACKET, RIGHT_BRACKET, COMMA};
 
 struct Token {
     TokenType type;
     double value;
     char op;
+    bool isUnary;
+    std::string func;
+
+    explicit Token(TokenType type, double value = 0, char op = 0, const std::string& func = "", bool isUnary = false)
+            : type(type), value(value), op(op), func(func), isUnary(isUnary) {} // constructor to initialize token with default values
 };
 
 bool isOperator(char c) {
     return c == '+' || c == '-' || c == '*' || c == '/';
+}
+
+bool isFunction(const std::string& str) {
+    return str == "pow" || str == "abs" || str == "max" || str == "min";
 }
 
 std::vector<Token> tokenize(const std::string& expression) {
@@ -33,17 +43,37 @@ std::vector<Token> tokenize(const std::string& expression) {
         if (isdigit(current) || current == '.') {
             size_t length;
             double value = std::stod(&expression[i], &length);
-            tokens.push_back({OPERAND, value, 0});
+            tokens.emplace_back( OPERAND, value, 0, "" );
             i += length;
             continue;
         }
 
+        if (isalpha(current)) {
+            std::string func;
+            while (i < expression.size() && isalpha(expression[i])) {
+                func += expression[i++];
+            }
+            if (isFunction(func)) {
+                tokens.emplace_back(FUNCTION, 0, 0, func);
+            }
+            else {
+                throw std::runtime_error("Unknown function");
+            }
+            continue;
+        }
+
         if (isOperator(current)) {
-            tokens.push_back({OPERATOR, 0, current});
+            bool isUnary = false;
+            if (tokens.empty() || tokens.back().type == OPERATOR || tokens.back().type == LEFT_BRACKET) {
+                isUnary = (current == '+' || current == '-');
+            }
+            tokens.emplace_back( OPERATOR, 0, current, "", isUnary );
         } else if (current == '(') {
-            tokens.push_back({LEFT_BRACKET, 0, current});
+            tokens.emplace_back( LEFT_BRACKET, 0, current, "", false );
         } else if (current == ')') {
-            tokens.push_back({RIGHT_BRACKET, 0, current});
+            tokens.emplace_back( RIGHT_BRACKET, 0, current, "", false );
+        } else if (current == ',') {
+            tokens.emplace_back( COMMA, 0, current, "", false );
         } else {
             throw std::runtime_error("Unknown character");
         }
@@ -57,7 +87,7 @@ std::vector<Token> tokenize(const std::string& expression) {
     return tokens;
 }
 
-std::unordered_map<char, int> Precedence = { {'+', 10}, {'-', 10}, {'*', 20}, {'/', 20} };
+std::unordered_map<char, int> precedence = {{'+', 10}, {'-', 10}, {'*', 20}, {'/', 20} };
 
 std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
     std::queue<Token> outputQueue;
@@ -70,11 +100,19 @@ std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
                 break;
 
             case OPERATOR:
-                while (!operatorStack.empty() && operatorStack.top().type != LEFT_BRACKET &&
-                       Precedence[operatorStack.top().op] >= Precedence[token.op]) {
-                    outputQueue.push(operatorStack.top());
-                    operatorStack.pop();
+                if (token.isUnary) {
+                    operatorStack.push(token);
+                } else {
+                    while (!operatorStack.empty() && operatorStack.top().type != LEFT_BRACKET &&
+                           precedence[operatorStack.top().op] >= precedence[token.op]) {
+                        outputQueue.push(operatorStack.top());
+                        operatorStack.pop();
+                    }
+                    operatorStack.push(token);
                 }
+                break;
+
+            case FUNCTION:
                 operatorStack.push(token);
                 break;
 
@@ -91,7 +129,17 @@ std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
                     throw std::runtime_error("Mismatched parentheses");
                 }
                 operatorStack.pop();
+                if (!operatorStack.empty() && operatorStack.top().type == FUNCTION) {
+                    outputQueue.push(operatorStack.top());
+                    operatorStack.pop();
+                }
                 break;
+
+            case COMMA:
+                while (!operatorStack.empty() && operatorStack.top().type != LEFT_BRACKET) {
+                    outputQueue.push(operatorStack.top());
+                    operatorStack.pop();
+                }
         }
     }
     while (!operatorStack.empty()) {
@@ -104,7 +152,7 @@ std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
     return outputQueue;
 }
 
-double applyOperation(char operatorChar, double a, double b) {
+double applyOperator(char operatorChar, double a, double b) {
     switch(operatorChar) {
         case '+': return a + b;
         case '-': return a - b;
@@ -113,6 +161,22 @@ double applyOperation(char operatorChar, double a, double b) {
             return a / b;
         default: throw std::runtime_error("Unknown operator");
     }
+}
+
+double applyUnaryOperator(char operatorChar, double a) {
+    switch (operatorChar) {
+        case '+': return a;
+        case '-': return -a;
+        default: throw std::runtime_error("Unknown unary operator");
+    }
+}
+
+double applyFunction(const std::string& func, const std::vector<double>& args) {
+    if (func == "pow") return std::pow(args[0], args[1]);
+    if (func == "abs") return std::abs(args[0]);
+    if (func == "max") return std::max(args[0], args[1]);
+    if (func == "min") return std::min(args[0], args[1]);
+    throw std::runtime_error("Unknown function");
 }
 
 double evaluatePostfix(std::queue<Token>& postfix) {
@@ -125,12 +189,37 @@ double evaluatePostfix(std::queue<Token>& postfix) {
         if (token.type == OPERAND) {
             evalStack.push(token.value);
         } else if (token.type == OPERATOR) {
-            if (evalStack.size() < 2) {
-                throw std::runtime_error("Incorrect syntax");
+            if (token.isUnary) {
+                if (evalStack.empty()) {
+                    throw std::runtime_error("Incorrect syntax");
+                }
+                double a = evalStack.top(); evalStack.pop();
+                evalStack.push(applyUnaryOperator(token.op, a));
+            } else {
+                if (evalStack.size() < 2) {
+                    throw std::runtime_error("Incorrect syntax");
+                }
+                double b = evalStack.top();
+                evalStack.pop();
+                double a = evalStack.top();
+                evalStack.pop();
+                evalStack.push(applyOperator(token.op, a, b));
             }
-            double b = evalStack.top(); evalStack.pop();
-            double a = evalStack.top(); evalStack.pop();
-            evalStack.push(applyOperation(token.op, a, b));
+        } else if (token.type == FUNCTION) {
+            std::vector<double> args;
+            if (token.func == "abs") {
+                if (evalStack.empty()) {
+                    throw std::runtime_error("Incorrect syntax");
+                }
+                double a = evalStack.top(); evalStack.pop();
+                evalStack.push(applyFunction(token.func, {a}));
+            } else {
+                for (int i = 0; i < 2 && !evalStack.empty(); ++i) {
+                    args.insert(args.begin(), evalStack.top());
+                    evalStack.pop();
+                }
+                evalStack.push(applyFunction(token.func, args));
+            }
         }
     }
     if (evalStack.size() != 1) {
