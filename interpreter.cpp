@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <queue>
 #include <stack>
+#include <cmath>
 
 
 enum TokenType {OPERAND, OPERATOR, LEFT_BRACKET, RIGHT_BRACKET};
@@ -12,6 +13,10 @@ struct Token {
     TokenType type;
     double value;
     char op;
+    bool isUnary;
+
+    explicit Token(TokenType type, double value = 0, char op = 0, bool isUnary = false)
+            : type(type), value(value), op(op), isUnary(isUnary) {} // constructor to initialize token with default values
 };
 
 bool isOperator(char c) {
@@ -33,17 +38,21 @@ std::vector<Token> tokenize(const std::string& expression) {
         if (isdigit(current) || current == '.') {
             size_t length;
             double value = std::stod(&expression[i], &length);
-            tokens.push_back({OPERAND, value, 0});
+            tokens.emplace_back( OPERAND, value, 0, "" );
             i += length;
             continue;
         }
 
         if (isOperator(current)) {
-            tokens.push_back({OPERATOR, 0, current});
+            bool isUnary = false;
+            if (tokens.empty() || tokens.back().type == OPERATOR || tokens.back().type == LEFT_BRACKET) {
+                isUnary = (current == '+' || current == '-');
+            }
+            tokens.emplace_back( OPERATOR, 0, current, isUnary );
         } else if (current == '(') {
-            tokens.push_back({LEFT_BRACKET, 0, current});
+            tokens.emplace_back( LEFT_BRACKET, 0, current, false );
         } else if (current == ')') {
-            tokens.push_back({RIGHT_BRACKET, 0, current});
+            tokens.emplace_back( RIGHT_BRACKET, 0, current, false );
         } else {
             throw std::runtime_error("Unknown character");
         }
@@ -57,7 +66,7 @@ std::vector<Token> tokenize(const std::string& expression) {
     return tokens;
 }
 
-std::unordered_map<char, int> Precedence = { {'+', 10}, {'-', 10}, {'*', 20}, {'/', 20} };
+std::unordered_map<char, int> precedence = {{'+', 10}, {'-', 10}, {'*', 20}, {'/', 20} };
 
 std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
     std::queue<Token> outputQueue;
@@ -70,12 +79,16 @@ std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
                 break;
 
             case OPERATOR:
-                while (!operatorStack.empty() && operatorStack.top().type != LEFT_BRACKET &&
-                       Precedence[operatorStack.top().op] >= Precedence[token.op]) {
-                    outputQueue.push(operatorStack.top());
-                    operatorStack.pop();
+                if (token.isUnary) {
+                    operatorStack.push(token);
+                } else {
+                    while (!operatorStack.empty() && operatorStack.top().type != LEFT_BRACKET &&
+                           precedence[operatorStack.top().op] >= precedence[token.op]) {
+                        outputQueue.push(operatorStack.top());
+                        operatorStack.pop();
+                    }
+                    operatorStack.push(token);
                 }
-                operatorStack.push(token);
                 break;
 
             case LEFT_BRACKET:
@@ -104,7 +117,7 @@ std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
     return outputQueue;
 }
 
-double applyOperation(char operatorChar, double a, double b) {
+double applyOperator(char operatorChar, double a, double b) {
     switch(operatorChar) {
         case '+': return a + b;
         case '-': return a - b;
@@ -112,6 +125,14 @@ double applyOperation(char operatorChar, double a, double b) {
         case '/': if (b == 0) throw std::runtime_error("Division by zero");
             return a / b;
         default: throw std::runtime_error("Unknown operator");
+    }
+}
+
+double applyUnaryOperator(char operatorChar, double a) {
+    switch (operatorChar) {
+        case '+': return a;
+        case '-': return -a;
+        default: throw std::runtime_error("Unknown unary operator");
     }
 }
 
@@ -125,18 +146,28 @@ double evaluatePostfix(std::queue<Token>& postfix) {
         if (token.type == OPERAND) {
             evalStack.push(token.value);
         } else if (token.type == OPERATOR) {
-            if (evalStack.size() < 2) {
-                throw std::runtime_error("Incorrect syntax");
+            if (token.isUnary) {
+                if (evalStack.empty()) {
+                    throw std::runtime_error("Incorrect syntax");
+                }
+                double a = evalStack.top();
+                evalStack.pop();
+                evalStack.push(applyUnaryOperator(token.op, a));
+            } else {
+                if (evalStack.size() < 2) {
+                    throw std::runtime_error("Incorrect syntax");
+                }
+                double b = evalStack.top();
+                evalStack.pop();
+                double a = evalStack.top();
+                evalStack.pop();
+                evalStack.push(applyOperator(token.op, a, b));
             }
-            double b = evalStack.top(); evalStack.pop();
-            double a = evalStack.top(); evalStack.pop();
-            evalStack.push(applyOperation(token.op, a, b));
         }
     }
     if (evalStack.size() != 1) {
         throw std::runtime_error("Invalid expression");
     }
-
     return evalStack.top();
 }
 
