@@ -171,6 +171,14 @@ double applyUnaryOperator(char operatorChar, double a) {
     }
 }
 
+double applyFunction(const std::string& func, const std::vector<double>& args) {
+    if (func == "pow") return std::pow(args[0], args[1]);
+    if (func == "abs") return std::abs(args[0]);
+    if (func == "max") return std::max(args[0], args[1]);
+    if (func == "min") return std::min(args[0], args[1]);
+    throw std::runtime_error("Unknown function");
+}
+
 double evaluatePostfix(std::queue<Token>& postfix) {
     std::stack<double> evalStack;
 
@@ -185,8 +193,7 @@ double evaluatePostfix(std::queue<Token>& postfix) {
                 if (evalStack.empty()) {
                     throw std::runtime_error("Incorrect syntax");
                 }
-                double a = evalStack.top();
-                evalStack.pop();
+                double a = evalStack.top(); evalStack.pop();
                 evalStack.push(applyUnaryOperator(token.op, a));
             } else {
                 if (evalStack.size() < 2) {
@@ -198,11 +205,27 @@ double evaluatePostfix(std::queue<Token>& postfix) {
                 evalStack.pop();
                 evalStack.push(applyOperator(token.op, a, b));
             }
+        } else if (token.type == FUNCTION) {
+            std::vector<double> args;
+            if (token.func == "abs") {
+                if (evalStack.empty()) {
+                    throw std::runtime_error("Incorrect syntax");
+                }
+                double a = evalStack.top(); evalStack.pop();
+                evalStack.push(applyFunction(token.func, {a}));
+            } else {
+                for (int i = 0; i < 2 && !evalStack.empty(); ++i) {
+                    args.insert(args.begin(), evalStack.top());
+                    evalStack.pop();
+                }
+                evalStack.push(applyFunction(token.func, args));
+            }
         }
     }
     if (evalStack.size() != 1) {
         throw std::runtime_error("Invalid expression");
     }
+
     return evalStack.top();
 }
 
