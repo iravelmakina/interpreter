@@ -20,15 +20,25 @@ struct Token {
             : type(type), value(value), op(op), func(func), isUnary(isUnary) {} // constructor to initialize token with default values
 };
 
+
 bool isOperator(char c) {
     return c == '+' || c == '-' || c == '*' || c == '/';
 }
+
 
 bool isFunction(const std::string& str) {
     return str == "pow" || str == "abs" || str == "max" || str == "min";
 }
 
+
+double applyUnaryOperation(char unaryOp, double value) {
+    if (unaryOp == '-') return -value;
+    return value; // unary + does nothing
+}
+
+
 std::vector<Token> tokenize(const std::string& expression) {
+    if (expression.empty()) throw std::runtime_error("Empty input");
     std::vector<Token> tokens;
     size_t i = 0;
 
@@ -43,7 +53,11 @@ std::vector<Token> tokenize(const std::string& expression) {
         if (isdigit(current) || current == '.') {
             size_t length;
             double value = std::stod(&expression[i], &length);
-            tokens.emplace_back( OPERAND, value, 0, "" );
+            if (!tokens.empty() && tokens.back().type == OPERATOR && tokens.back().op == '-') {
+                value = applyUnaryOperation(tokens.back().op, value);
+                tokens.pop_back(); // remove the unary operator token
+            }
+            tokens.emplace_back(OPERAND, value);
             i += length;
             continue;
         }
@@ -63,11 +77,8 @@ std::vector<Token> tokenize(const std::string& expression) {
         }
 
         if (isOperator(current)) {
-            bool isUnary = false;
-            if (tokens.empty() || tokens.back().type == OPERATOR || tokens.back().type == LEFT_BRACKET) {
-                isUnary = (current == '+' || current == '-');
-            }
-            tokens.emplace_back( OPERATOR, 0, current, "", isUnary );
+            bool isUnary = (current == '-' && (tokens.empty() || tokens.back().type == OPERATOR || tokens.back().type == LEFT_BRACKET));
+            tokens.emplace_back(OPERATOR, 0, current, "", isUnary);
         } else if (current == '(') {
             tokens.emplace_back( LEFT_BRACKET, 0, current, "", false );
         } else if (current == ')') {
@@ -80,14 +91,12 @@ std::vector<Token> tokenize(const std::string& expression) {
         ++i;
     }
 
-    if (tokens.empty()) {
-        throw std::runtime_error("Empty input");
-    }
-
     return tokens;
 }
 
+
 std::unordered_map<char, int> precedence = {{'+', 10}, {'-', 10}, {'*', 20}, {'/', 20} };
+
 
 std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
     std::queue<Token> outputQueue;
@@ -152,6 +161,7 @@ std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
     return outputQueue;
 }
 
+
 double applyOperator(char operatorChar, double a, double b) {
     switch(operatorChar) {
         case '+': return a + b;
@@ -163,13 +173,6 @@ double applyOperator(char operatorChar, double a, double b) {
     }
 }
 
-double applyUnaryOperator(char operatorChar, double a) {
-    switch (operatorChar) {
-        case '+': return a;
-        case '-': return -a;
-        default: throw std::runtime_error("Unknown unary operator");
-    }
-}
 
 double applyFunction(const std::string& func, const std::vector<double>& args) {
     if (func == "pow") return std::pow(args[0], args[1]);
@@ -178,6 +181,7 @@ double applyFunction(const std::string& func, const std::vector<double>& args) {
     if (func == "min") return std::min(args[0], args[1]);
     throw std::runtime_error("Unknown function");
 }
+
 
 double evaluatePostfix(std::queue<Token>& postfix) {
     std::stack<double> evalStack;
@@ -194,7 +198,7 @@ double evaluatePostfix(std::queue<Token>& postfix) {
                     throw std::runtime_error("Incorrect syntax");
                 }
                 double a = evalStack.top(); evalStack.pop();
-                evalStack.push(applyUnaryOperator(token.op, a));
+                evalStack.push(applyUnaryOperation(token.op, a));
             } else {
                 if (evalStack.size() < 2) {
                     throw std::runtime_error("Incorrect syntax");
@@ -207,19 +211,16 @@ double evaluatePostfix(std::queue<Token>& postfix) {
             }
         } else if (token.type == FUNCTION) {
             std::vector<double> args;
-            if (token.func == "abs") {
+            int expectedArgs = (token.func == "abs") ? 1 : 2;
+
+            for (int i = 0; i < expectedArgs; ++i) {
                 if (evalStack.empty()) {
                     throw std::runtime_error("Incorrect syntax");
                 }
-                double a = evalStack.top(); evalStack.pop();
-                evalStack.push(applyFunction(token.func, {a}));
-            } else {
-                for (int i = 0; i < 2 && !evalStack.empty(); ++i) {
-                    args.insert(args.begin(), evalStack.top());
-                    evalStack.pop();
-                }
-                evalStack.push(applyFunction(token.func, args));
+                args.insert(args.begin(), evalStack.top());
+                evalStack.pop();
             }
+            evalStack.push(applyFunction(token.func, args));
         }
     }
     if (evalStack.size() != 1) {
@@ -229,26 +230,19 @@ double evaluatePostfix(std::queue<Token>& postfix) {
     return evalStack.top();
 }
 
+
 int main() {
     std::string expression;
-    do {
-        std::cout << "Enter an arithmetic expression (or 'e' to exit): ";
-        std::getline(std::cin, expression);
+    std::getline(std::cin, expression);
 
-        if (expression == "e") {
-            std::cout << "Exiting...";
-            break;
-        }
-
-        try {
-            std::vector<Token> tokens = tokenize(expression);
-            std::queue<Token> postfix = infixToPostfix(tokens);
-            double result = evaluatePostfix(postfix);
-            std::cout << "Result: " << result << std::endl;
-        } catch (const std::exception &ex) {
-            std::cout << "Error: " << ex.what() << std::endl;
-        }
-    } while (true);
+    try {
+        std::vector<Token> tokens = tokenize(expression);
+        std::queue<Token> postfix = infixToPostfix(tokens);
+        double result = evaluatePostfix(postfix);
+        std::cout << result << std::endl;
+    } catch (const std::exception &ex) {
+        std::cout << "Error: " << ex.what() << std::endl;
+    }
 
     return 0;
 }
