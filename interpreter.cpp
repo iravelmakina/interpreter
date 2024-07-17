@@ -7,20 +7,25 @@
 #include <cmath>
 
 
-enum TokenType {OPERAND, OPERATOR, LEFT_BRACKET, RIGHT_BRACKET};
+enum TokenType {OPERAND, OPERATOR, FUNCTION, LEFT_BRACKET, RIGHT_BRACKET, COMMA};
 
 struct Token {
     TokenType type;
     double value;
     char op;
     bool isUnary;
+    std::string func;
 
-    explicit Token(TokenType type, double value = 0, char op = 0, bool isUnary = false)
-            : type(type), value(value), op(op), isUnary(isUnary) {} // constructor to initialize token with default values
+    explicit Token(TokenType type, double value = 0, char op = 0, const std::string& func = "", bool isUnary = false)
+            : type(type), value(value), op(op), func(func), isUnary(isUnary) {} // constructor to initialize token with default values
 };
 
 bool isOperator(char c) {
     return c == '+' || c == '-' || c == '*' || c == '/';
+}
+
+bool isFunction(const std::string& str) {
+    return str == "pow" || str == "abs" || str == "max" || str == "min";
 }
 
 std::vector<Token> tokenize(const std::string& expression) {
@@ -43,16 +48,32 @@ std::vector<Token> tokenize(const std::string& expression) {
             continue;
         }
 
+        if (isalpha(current)) {
+            std::string func;
+            while (i < expression.size() && isalpha(expression[i])) {
+                func += expression[i++];
+            }
+            if (isFunction(func)) {
+                tokens.emplace_back(FUNCTION, 0, 0, func);
+            }
+            else {
+                throw std::runtime_error("Unknown function");
+            }
+            continue;
+        }
+
         if (isOperator(current)) {
             bool isUnary = false;
             if (tokens.empty() || tokens.back().type == OPERATOR || tokens.back().type == LEFT_BRACKET) {
                 isUnary = (current == '+' || current == '-');
             }
-            tokens.emplace_back( OPERATOR, 0, current, isUnary );
+            tokens.emplace_back( OPERATOR, 0, current, "", isUnary );
         } else if (current == '(') {
-            tokens.emplace_back( LEFT_BRACKET, 0, current, false );
+            tokens.emplace_back( LEFT_BRACKET, 0, current, "", false );
         } else if (current == ')') {
-            tokens.emplace_back( RIGHT_BRACKET, 0, current, false );
+            tokens.emplace_back( RIGHT_BRACKET, 0, current, "", false );
+        } else if (current == ',') {
+            tokens.emplace_back( COMMA, 0, current, "", false );
         } else {
             throw std::runtime_error("Unknown character");
         }
@@ -91,6 +112,10 @@ std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
                 }
                 break;
 
+            case FUNCTION:
+                operatorStack.push(token);
+                break;
+
             case LEFT_BRACKET:
                 operatorStack.push(token);
                 break;
@@ -104,7 +129,17 @@ std::queue<Token> infixToPostfix(const std::vector<Token>& tokens) {
                     throw std::runtime_error("Mismatched parentheses");
                 }
                 operatorStack.pop();
+                if (!operatorStack.empty() && operatorStack.top().type == FUNCTION) {
+                    outputQueue.push(operatorStack.top());
+                    operatorStack.pop();
+                }
                 break;
+
+            case COMMA:
+                while (!operatorStack.empty() && operatorStack.top().type != LEFT_BRACKET) {
+                    outputQueue.push(operatorStack.top());
+                    operatorStack.pop();
+                }
         }
     }
     while (!operatorStack.empty()) {
