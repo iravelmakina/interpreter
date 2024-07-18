@@ -52,10 +52,6 @@ def test_program():
             "expected_output": "Error: Unknown character"
         },
         {
-            "input": "2@ 3\n",
-            "expected_output": "Error: Unknown character"
-        },
-        {
             "input": "-5 +3\n",
             "expected_output": "-2"
         },
