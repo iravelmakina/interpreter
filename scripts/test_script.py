@@ -3,7 +3,7 @@ import subprocess
 
 def run_program(input_data):
     process = subprocess.Popen(
-        ['interpreter.exe'],
+        ['../interpreter_implementation/interpreter.exez'],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

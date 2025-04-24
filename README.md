@@ -1,20 +1,17 @@
 # Arithmetic Expression Interpreter (C++)
 
-This repository contains a simple yet powerful interpreter implemented in C++ that supports evaluating arithmetic expressions and calling basic mathematical functions using a declarative, functional-style syntax.
+This repository contains a compact interpreter written in C++ that evaluates arithmetic expressions and supports functional-style built-in operations such as `min`, `max`, `abs`, and `pow`. The project also includes a Python-based test suite to validate interpreter behavior.
 
 ---
 
 ## Features
 
-- **Arithmetic expression parsing**
-  - Supports operators: `+`, `-`, `*`, `/`
-  - Proper operator precedence and grouping
-- **Built-in function support**
-  - Includes: `max(a, b)`, `min(a, b)`, `abs(x)`, `pow(x, y)`
-- **Nested expressions**
-  - Combine arithmetic with function calls
-- **Cross-language testing**
-  - Use `test_script.py` to validate behavior via Python
+- Evaluate expressions with `+`, `-`, `*`, `/`
+- Supports nested calls and parentheses
+- Built-in functions: `min(x, y)`, `max(x, y)`, `abs(x)`, `pow(x, y)`
+- Lightweight REPL-style interaction
+- Includes a Python test script to validate output correctness
+- Cross-paradigm learning: declarative, functional, and imperative styles
 
 ---
 
@@ -36,16 +33,20 @@ This repository contains a simple yet powerful interpreter implemented in C++ th
 
 ---
 
-## Repository Structure
+## Directory Structure
 
 ```
 interpreter/
-├── interpreter.cpp      # Main C++ interpreter logic
-├── interpreter.exe      # Precompiled binary (Windows only)
-├── test_script.py       # Test harness for expression validation
-├── LICENSE
+├── interpreter_implementation/     # C++ source and binary
+│   ├── interpreter.cpp             # Main interpreter implementation
+│   └── interpreter.exe             # Precompiled binary (Windows)
+│
+├── scripts/                        # Python-based testing
+│   └── test_script.py              # Automated expression validator
+│
 ├── .gitignore
 ├── .gitattributes
+├── LICENSE
 └── README.md
 ```
 
@@ -53,30 +54,31 @@ interpreter/
 
 ## Getting Started
 
-### Prerequisites
+### Requirements
 
-- Windows OS (if using `interpreter.exe`)
-- Python 3.x (for testing)
+- Windows OS (for using `interpreter.exe`)
+- Python 3.x (for running `test_script.py`)
 
-### Run the Interpreter
+### Running the Interpreter
 
-If using the prebuilt binary:
 ```bash
-./interpreter.exe
+# Option 1: Run the prebuilt binary
+./interpreter_implementation/interpreter.exe
 ```
 
-> Input expressions directly into the console. Press Enter to evaluate.
+You’ll see a prompt where you can enter expressions to evaluate.
 
 ---
 
-## Testing
+## Testing the Interpreter
 
-Use the included Python script to automatically validate expression results:
+A simple Python script is provided to test various expressions against expected outputs.
+
 ```bash
-python test_script.py
+python scripts/test_script.py
 ```
 
-This script feeds a series of expressions to the interpreter and compares output with expected results.
+> The script automatically feeds expressions into `interpreter.exe` and compares actual vs expected results.
 
 ---
 
