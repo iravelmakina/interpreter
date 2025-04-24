@@ -1,38 +1,91 @@
-# Interpreter Implementation: Elements of Declarative and Functional Styles
+# Arithmetic Expression Interpreter (C++)
 
-## Purpose of Work
-The purpose of this work is to gain experience in programming using multi-paradigm programming and preparing a declarative language that supports a basic functional style.
+This repository contains a simple yet powerful interpreter implemented in C++ that supports evaluating arithmetic expressions and calling basic mathematical functions using a declarative, functional-style syntax.
 
-## Task
-Implement a simple interpreter in C++ that can evaluate arithmetic expressions, define functions, and call functions. The interpreter should support the following features:
+---
 
-1. Basic arithmetic operations: `+`, `-`, `*`, `/`
-2. Function definitions with two parameters (`pow`, `abs`, `max`, `min`)
-3. Expression combinations
+## Features
 
-### Example Usage:
+- **Arithmetic expression parsing**
+  - Supports operators: `+`, `-`, `*`, `/`
+  - Proper operator precedence and grouping
+- **Built-in function support**
+  - Includes: `max(a, b)`, `min(a, b)`, `abs(x)`, `pow(x, y)`
+- **Nested expressions**
+  - Combine arithmetic with function calls
+- **Cross-language testing**
+  - Use `test_script.py` to validate behavior via Python
+
+---
+
+## Example Usage
+
 ```plaintext
 > 5 + 3 * 2
-> 11
+11
 
 > max(5, 2)
-> 5
+5
 
 > min(3, 4)
-> 3
+3
 
 > max(min(3 * 2, 2), 2)
-> 6
+6
 ```
 
-### How to Use
-1. Clone the repository.
-2. Ensure interpreter.exe is in the working directory.
-3. Run the provided test script (test_script.py) with python test_script.py.
-4. Verify the output matches the expected results for all test cases.
+---
 
-### Testing
-To test the implemented interpreter, a Python script is provided to execute the program with different input combinations and verify the correctness of the results.
+## Repository Structure
 
-## Contributors
--@iravelmakina
+```
+interpreter/
+├── interpreter.cpp      # Main C++ interpreter logic
+├── interpreter.exe      # Precompiled binary (Windows only)
+├── test_script.py       # Test harness for expression validation
+├── LICENSE
+├── .gitignore
+├── .gitattributes
+└── README.md
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Windows OS (if using `interpreter.exe`)
+- Python 3.x (for testing)
+
+### Run the Interpreter
+
+If using the prebuilt binary:
+```bash
+./interpreter.exe
+```
+
+> Input expressions directly into the console. Press Enter to evaluate.
+
+---
+
+## Testing
+
+Use the included Python script to automatically validate expression results:
+```bash
+python test_script.py
+```
+
+This script feeds a series of expressions to the interpreter and compares output with expected results.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+
+---
+
+## Contributor
+
+- [@iravelmakina](https://github.com/iravelmakina)
